@@ -166,151 +166,168 @@ print(passedPerGroup)
 //["ІВ-71": 79.333336, "ІВ-72": 80.25, "ІВ-73": 82.2]
 //
 //["ІВ-72": ["Бортнік Василь", "Киба Олег", "Овчарова Юстіна", "Тимко Андрій"], "ІВ-73": ["Давиденко Костянтин", "Капінус Артем", "Чередніченко Владислав", "Гончар Юрій", "Науменко Павло"], "ІВ-71": ["Музика Олександр", "Трудов Антон", "Гуменюк Олександр", "Феофанов Іван", "Андрющенко Данило", "Корнійчук Ольга"]]
-class TimeAY {
 
-    // UInt maps to NSUInteger typedef from Objective-C Foundation framework
-    var _hours: UInt
-    var _minutes: UInt
-    var _seconds: UInt
+enum MyErrors: Error {
+    case wrongHours
+    case wrongMinutes
+    case wrongSeconds
+}
 
-    init() {
-        _hours = 0
-        _minutes = 0
-        _seconds = 0
+class TimeYO{
+    var hours, minutes, seconds : UInt
+
+    init(){
+        hours = 0;
+        minutes = 0;
+        seconds = 0;
     }
+    init(hours : UInt = 0, minutes : UInt = 0, seconds : UInt = 0) throws{
+        self.hours = hours
+        self.minutes = minutes
+        self.seconds = seconds
 
-    init(_ hours: UInt, _ minutes: UInt, _ seconds: UInt) {
-        _hours = hours
-        _minutes = minutes
-        _seconds = seconds
-
-        if _seconds > 59 {
-            _seconds -= 60
-            _minutes += 1
+        if (hours > 23 || hours < 0){
+            throw MyErrors.wrongHours
         }
-
-        if _minutes > 59 {
-            _minutes -= 60
-            _hours += 1
+        if (minutes > 59 || minutes < 0){
+            throw MyErrors.wrongMinutes
         }
-
-        if _hours > 23 {
-            _hours -= 24
+        if (seconds > 59 || seconds < 0){
+            throw MyErrors.wrongSeconds
         }
     }
+    init(date : Date){
+        let date = Date()
+        let calendar = Calendar.current
 
-    // Swift`s Date maps to Foundation`s NSDate
-    init(date: Date) {
-        let calendar = Calendar.current // gregorian?
-
-        _hours = UInt(calendar.component(.hour, from: date))
-        _minutes = UInt(calendar.component(.minute, from: date))
-        _seconds = UInt(calendar.component(.second, from: date))
+        self.hours = UInt(calendar.component(.hour, from: date))
+        self.minutes = UInt(calendar.component(.minute, from: date))
+        self.seconds = UInt(calendar.component(.second, from: date))
     }
 
-    func stringify() -> String {
-        let isAM = self._hours < 13
-
-        let hours = String(isAM ? _hours : _hours - 12)
-        let minutes = _minutes < 10 ? "0\(_minutes)" : String(_minutes)
-        let seconds = _seconds < 10 ? "0\(_seconds)" : String(_seconds)
-
-        return String(format: "%@:%@:%@ %@", hours, minutes, seconds, isAM ? "AM" : "PM")
+    func getTimeInfoOrdinary() -> String {
+        return ("TIME\t\(hours):\(minutes):\(seconds)")
+    }
+    func getTimeInfo() -> String {
+        if (hours == 0){
+            return ("12:\(minutes):\(seconds) AM")
+        }
+        else if (hours == 12) {
+            return ("12:\(minutes):\(seconds) PM")
+        }
+        else if (hours < 12) {
+            return ("\(hours):\(minutes):\(seconds) AM")
+        }
+        else {
+            return ("\(hours - 12):\(minutes):\(seconds) PM")
+        }
     }
 
-    // computed property, for convenience
-    var string: String {
-        get { stringify() }
+    func getSum (time : TimeYO) -> TimeYO? {
+        self.hours += time.hours
+        self.minutes += time.minutes
+        self.seconds += time.seconds
+
+        if (self.seconds > 59) {
+            self.minutes += 1
+            self.seconds -= 60
+        }
+        if (self.minutes > 59) {
+            self.hours += 1
+            self.minutes -= 60
+        }
+        if (self.hours > 23) {
+            self.hours -= 24
+        }
+
+        return try! TimeYO(hours: self.hours, minutes: self.minutes, seconds: self.seconds)
+    }
+    func getDif(time : TimeYO) -> TimeYO? {
+        self.hours -= time.hours
+        self.minutes -= time.minutes
+        self.seconds -= time.seconds
+
+        if (self.seconds < 0) {
+            self.seconds += 60
+            self.minutes -= 1
+        }
+        if (self.minutes < 0) {
+            self.minutes += 60
+            self.hours -= 1
+        }
+        if (self.hours < 0) {
+            self.hours += 24
+        }
+
+        return try! TimeYO(hours: self.hours, minutes: self.minutes, seconds: self.seconds)
     }
 
-    func plus(_ other: TimeAY) -> TimeAY {
-        var hours: UInt = 0
-        var minutes: UInt = 0
-        var seconds: UInt = 0
+    func getSumOfTwoTimes (time1 : TimeYO, time2 : TimeYO) -> TimeYO? {
+        var hoursSum = time1.hours + time2.hours
+        var minutesSum = time1.minutes + time2.minutes
+        var secondsSum = time1.seconds + time2.seconds
 
-        seconds += _seconds + other._seconds
-        if seconds > 59 {
-            seconds -= 60
-            minutes += 1
+        if (secondsSum > 59) {
+            minutesSum += 1
+            secondsSum -= 60
+        }
+        if (minutesSum > 59) {
+            hoursSum += 1
+            minutesSum -= 60
+        }
+        if (hoursSum > 23) {
+            hoursSum -= 24
         }
 
-        minutes += _minutes + other._minutes
-        if minutes > 59 {
-            minutes -= 60
-            hours += 1
-        }
-
-        hours += _hours + other._hours
-        if hours > 23 {
-            hours -= 24
-        }
-
-        return TimeAY(hours, minutes, seconds)
+        return try! TimeYO(hours: hoursSum, minutes: minutesSum, seconds: secondsSum)
     }
+    func getDifOfTwoTimes(time1 : TimeYO, time2 : TimeYO) -> TimeYO? {
+        var hoursDif = time1.hours - time2.hours
+        var minutesDif = time1.minutes - time2.minutes
+        var secondsDif = time1.seconds - time2.seconds
 
-    func minus(_ other: TimeAY) -> TimeAY {
-        var hours = Int(_hours)
-        var minutes = Int(_minutes)
-        var seconds = Int(_seconds)
-
-        seconds -= Int(other._seconds)
-        if seconds < 0 {
-            seconds += 60
-            minutes -= 1
+        if (secondsDif < 0) {
+            secondsDif += 60
+            minutesDif -= 1
+        }
+        if (minutesDif < 0) {
+            minutesDif += 60
+            hoursDif -= 1
+        }
+        if (hoursDif < 0) {
+            hoursDif += 24
         }
 
-        minutes -= Int(other._minutes)
-        if minutes < 0 {
-            minutes += 60
-            hours -= 1
-        }
-
-        hours -= Int(other._hours)
-        if hours < 0 {
-            hours += 24
-        }
-
-        return TimeAY(
-            UInt(hours),
-            UInt(minutes),
-            UInt(seconds)
-        )
-    }
-
-    static func + (left: TimeAY, right: TimeAY) -> TimeAY {
-        return left.plus(right)
-    }
-
-    static func - (left: TimeAY, right: TimeAY) -> TimeAY {
-        return left.minus(right)
+        return try! TimeYO(hours: hoursDif, minutes: minutesDif, seconds: secondsDif)
     }
 }
 
-print()
+var time0 = TimeYO()
+var time1 = try! TimeYO(hours: 3, minutes: 30, seconds: 45)
+var time2 = try! TimeYO(hours: 15, minutes: 45, seconds: 55)
 
-let time_from_defaults = TimeAY()
-print("default initializer: \(time_from_defaults.string)")
+let date = Date()
+var timeFromDate = TimeYO(date: date)
 
-let time_from_date = TimeAY(date: Date())
-print("initialize with Date object: \(time_from_date.string)")
 
-let time_from_parameters = TimeAY(24, 60, 00)
-print("initializer with parameters: \(time_from_parameters.string)")
 
-print()
-
-let time1 = TimeAY(23, 59, 59)
-let time2 = TimeAY(12, 00, 01)
-
-let result0 = time1 + time2
-
-print(String(format: "%@ - %@ = %@", time1.string, time2.string, result0.string))
-
-let time3 = TimeAY(00, 00, 00)
-let time4 = TimeAY(00, 00, 01)
-
-let result1 = time3 - time4
-
-print(String(format: "%@ - %@ = %@", time3.string, time4.string, result1.string))
+print(time0.getTimeInfo())
+print(time1.getTimeInfo())
+print(time2.getTimeInfo())
+print(timeFromDate.getTimeInfo())
 
 print()
+print(time1.getTimeInfoOrdinary())
+print(time2.getTimeInfoOrdinary())
+var sum = time1.getSum(time: time2)
+print("Time1 + Time2 = " + sum!.getTimeInfoOrdinary() + "\n")
+var sumOfTwoTimes = TimeYO().getSumOfTwoTimes(time1: time2, time2: timeFromDate)
+print("Time1: " + time2.getTimeInfoOrdinary())
+print("Time2: " + timeFromDate.getTimeInfoOrdinary())
+print("Time1 + Time2: " + sumOfTwoTimes!.getTimeInfoOrdinary())
+
+var difOfTwoTimes = TimeYO().getDifOfTwoTimes(time1: time1, time2: time0)
+print("\nTime1: " + time1.getTimeInfoOrdinary())
+print("Time2: " + time0.getTimeInfoOrdinary())
+print("Time1 - Time2: " + difOfTwoTimes!.getTimeInfoOrdinary())
+
